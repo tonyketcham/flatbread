@@ -10,6 +10,7 @@ import {
   generateArgsForSingleItemQuery,
 } from '../generators/arguments';
 import resolveQueryArgs from '../resolvers/arguments';
+import { cacheSchema } from '../cache/cache';
 
 interface RootQueries {
   maybeReturnsSingleItem: string[];
@@ -111,7 +112,13 @@ export async function generateSchema(
           cloneDeep(allContentNodesJSON[type])?.filter((node: EntryNode) =>
             idsToFind?.includes(node.id)
           ) ?? [];
-        return resolveQueryArgs(matches, rp.args, type, schemaComposer);
+        return resolveQueryArgs(matches, rp.args, config, {
+          type: {
+            name: type,
+            pluralName: pluralType,
+            pluralQueryName: pluralTypeQueryName,
+          },
+        });
       },
     });
 
@@ -122,7 +129,13 @@ export async function generateSchema(
       description: `Return a set of ${pluralType}`,
       resolve: (rp: Record<string, any>) => {
         const nodes = cloneDeep(allContentNodesJSON[type]);
-        return resolveQueryArgs(nodes, rp.args, type, schemaComposer);
+        return resolveQueryArgs(nodes, rp.args, config, {
+          type: {
+            name: type,
+            pluralName: pluralType,
+            pluralQueryName: pluralTypeQueryName,
+          },
+        });
       },
     });
 
@@ -185,7 +198,11 @@ export async function generateSchema(
     });
   }
 
-  return schemaComposer.buildSchema();
+  const schema = schemaComposer.buildSchema();
+
+  cacheSchema(schema);
+
+  return schema;
 }
 
 /**
